@@ -1,0 +1,13 @@
+services:
+  rss-to-tg:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./data/rss-to-tg.sqlite3
+    volumes:
+      - rss_data:/app/data
+
+volumes:
+  rss_data:
+

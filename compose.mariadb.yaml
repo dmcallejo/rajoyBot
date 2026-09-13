@@ -1,0 +1,27 @@
+services:
+  rss-to-tg:
+    environment:
+      DATABASE_URL: mysql+aiomysql://rssbot:${MARIADB_PASSWORD:-change-me}@mariadb:3306/rssbot
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: rssbot
+      MARIADB_USER: rssbot
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-change-me}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-change-root-me}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mariadb_data:
+
