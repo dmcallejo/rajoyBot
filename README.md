@@ -4,22 +4,24 @@
 
 ## Features
 
-- Add, edit, pause, resume, list, and delete feeds from Telegram.
-- One feed can be connected to multiple channels by adding it more than once.
-- Per-feed polling intervals, with configurable global limits.
+- Each Telegram user can add, edit, pause, resume, list, and delete their own named feed-to-channel configurations.
+- Users who configure the same feed URL share one poll; each new article is delivered to every enabled destination for that feed.
+- The shared feed is polled at the shortest interval requested by its enabled configurations.
 - Article deduplication by RSS/Atom GUID (with a stable link fallback).
 - Conditional HTTP requests using ETag and Last-Modified headers.
 - Readable HTML posts with a short summary, a `Read more` link, and Telegram's normal link preview.
 - Failed Telegram deliveries remain retryable on the next poll.
 - First-run protection: existing feed entries are recorded but not posted by default, preventing a channel flood.
-- Admin allow-list, SQLite by default, MySQL/MariaDB support, and Docker files included.
+- User data is scoped by Telegram user ID, and management commands work only in private chats.
+- SQLite by default, MySQL/MariaDB support, and Docker files included.
 
 ## Telegram setup
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy its token.
 2. Add the bot to every destination channel as an administrator with permission to post messages.
-3. Copy your Telegram user ID into `ADMIN_USER_IDS`. Multiple IDs may be comma-separated.
-4. Copy `.env.example` to `.env`, fill in the values, and start the bot.
+3. Copy `.env.example` to `.env`, fill in the bot token, and start the bot.
+
+Any Telegram user can create personal configurations. To use a destination channel, the user must be a channel administrator and the bot must be an administrator with permission to post. Commands and configuration details are available only in a private chat with the bot.
 
 For public channels, use `@channel_username` when adding a feed. For private channels, use the numeric channel ID (normally beginning with `-100`).
 
@@ -59,19 +61,18 @@ Set `MARIADB_PASSWORD` and `MARIADB_ROOT_PASSWORD` in the shell or in `.env` bef
 | --- | --- |
 | `/start`, `/help` | Show help |
 | `/addfeed` | Add a feed interactively |
-| `/addfeed URL CHANNEL [MINUTES]` | Add a feed directly |
-| `/feeds` | List feeds and recent errors |
-| `/editfeed ID` | Change URL, channel, interval, or enabled state interactively |
-| `/togglefeed ID on\|off` | Pause or resume a feed |
-| `/deletefeed ID` | Delete a feed and confirm with an inline button |
-| `/stats` | Show feed and article counters |
+| `/addfeed NAME URL CHANNEL [MINUTES]` | Add a named configuration directly |
+| `/feeds` | List your configurations and recent feed errors |
+| `/editfeed ID` | Change name, URL, channel, interval, or enabled state interactively |
+| `/togglefeed ID on\|off` | Pause or resume a configuration |
+| `/deletefeed ID` | Delete a configuration with confirmation |
+| `/stats` | Show your configuration and delivery counters |
 | `/cancel` | Cancel an active add/edit prompt |
 
-The scheduler checks for due feeds every `POLL_TICK_SECONDS`. Each feed is only fetched once its own interval has elapsed, so intervals do not need to be whole multiples of the scheduler tick.
+The scheduler checks for due shared feeds every `POLL_TICK_SECONDS`. If several users configure the same URL, the bot makes one HTTP poll and fans new articles out to their enabled channels. The shortest enabled configuration interval controls when that shared feed is polled.
 
 ## Configuration
 
-`BOT_TOKEN` and `ADMIN_USER_IDS` are required. The remaining settings are optional; see `.env.example` for defaults. `POST_EXISTING_ON_FIRST_RUN=true` posts up to `MAX_ARTICLES_PER_POLL` existing entries during the first successful poll of a feed.
+`BOT_TOKEN` is required. The remaining settings are optional; see `.env.example` for defaults. `POST_EXISTING_ON_FIRST_RUN=true` posts up to `MAX_ARTICLES_PER_POLL` existing entries to each active configuration during the first successful poll of a shared feed.
 
-This starter uses `create_all` for a simple deployment. If the schema is changed for an existing production database, add a migration tool such as Alembic before deploying that change.
-
+The application creates tables on startup and migrates existing single-user feed rows into named configurations. Back up an existing database before deploying a schema change.

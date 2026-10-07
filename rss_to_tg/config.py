@@ -24,21 +24,10 @@ def _bool_env(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _admin_ids(raw: str) -> frozenset[int]:
-    try:
-        values = frozenset(int(item.strip()) for item in raw.split(",") if item.strip())
-    except ValueError as exc:
-        raise ValueError("ADMIN_USER_IDS must be a comma-separated list of Telegram user IDs") from exc
-    if not values:
-        raise ValueError("ADMIN_USER_IDS must contain at least one Telegram user ID")
-    return values
-
-
 @dataclass(frozen=True, slots=True)
 class Settings:
     bot_token: str
     database_url: str
-    admin_user_ids: frozenset[int]
     default_interval_minutes: int = 30
     min_interval_minutes: int = 5
     max_interval_minutes: int = 24 * 60
@@ -57,15 +46,10 @@ class Settings:
         if not token:
             raise ValueError("BOT_TOKEN is required")
 
-        admin_ids = os.getenv("ADMIN_USER_IDS")
-        if not admin_ids:
-            raise ValueError("ADMIN_USER_IDS is required")
-
         default_database = "sqlite+aiosqlite:///./data/rss-to-tg.sqlite3"
         settings = cls(
             bot_token=token.strip(),
             database_url=os.getenv("DATABASE_URL", default_database).strip(),
-            admin_user_ids=_admin_ids(admin_ids),
             default_interval_minutes=_int_env("DEFAULT_INTERVAL_MINUTES", 30),
             min_interval_minutes=_int_env("MIN_INTERVAL_MINUTES", 5),
             max_interval_minutes=_int_env("MAX_INTERVAL_MINUTES", 24 * 60),
@@ -94,4 +78,3 @@ class Settings:
             raise ValueError("MAX_ARTICLES_PER_POLL must be at least 1")
         if self.request_timeout_seconds < 1:
             raise ValueError("REQUEST_TIMEOUT_SECONDS must be at least 1")
-

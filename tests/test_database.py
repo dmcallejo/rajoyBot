@@ -14,6 +14,12 @@ def test_orm_schema_creates_feed_and_article_tables(tmp_path) -> None:
     engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
     Base.metadata.create_all(engine)
     try:
-        assert set(inspect(engine).get_table_names()) == {"feeds", "articles"}
+        assert set(inspect(engine).get_table_names()) == {
+            "feeds",
+            "feed_url_keys",
+            "articles",
+            "feed_configurations",
+            "deliveries",
+        }
     finally:
         engine.dispose()

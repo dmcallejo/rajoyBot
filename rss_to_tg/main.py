@@ -26,8 +26,13 @@ def main() -> None:
         Path("data").mkdir(parents=True, exist_ok=True)
 
     database = Database(settings.database_url)
-    asyncio.run(database.init())
     repository = FeedRepository(database)
+
+    async def initialize() -> None:
+        await database.init()
+        await repository.migrate_legacy_data()
+
+    asyncio.run(initialize())
     poller = FeedPoller(repository, settings)
     scheduler = FeedScheduler(repository, poller, settings)
     application = build_application(settings, database, poller, scheduler)
@@ -41,4 +46,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
